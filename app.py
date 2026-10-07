@@ -8,7 +8,7 @@ VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "PC_GomezFarias_VillaAldama_2025")
 
 @app.route('/')
 def home():
-    return 'Bot de Protección Civil Gómez Farías Activo'
+    return 'Bot de Proteccion Civil Gomez Farias Activo'
 
 @app.route('/webhook', methods=['GET'])
 def verify_webhook():
@@ -32,7 +32,7 @@ def webhook():
                     for msg in value['messages']:
                         from_num = msg['from']
                         text = msg.get('text', {}).get('body', '')
-                        respuesta = f"Hola, soy el Bot de Proteccion Civil de Gomez Farias Recibi: {text} Si es emergencia marca 911."
+                        respuesta = f"Hola, soy el Bot de Proteccion Civil de Gomez Farias. Recibi: {text} Si es emergencia marca 911."
                         token = os.getenv("WHATSAPP_TOKEN")
                         phone_id = os.getenv("PHONE_NUMBER_ID")
                         if token and phone_id:
