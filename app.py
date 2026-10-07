@@ -32,12 +32,9 @@ def webhook():
                     for msg in value['messages']:
                         from_num = msg['from']
                         text = msg.get('text', {}).get('body', '')
-                        
-                        respuesta = f"Hola, soy el Bot de Protección Civil de Gómez Farías 🚨\n\nRecibí: '{text}'\n\nSi es emergencia marca 911. En breve te atiende un elemento."
-
+                        respuesta = f"Hola, soy el Bot de Proteccion Civil de Gomez Farias Recibi: {text} Si es emergencia marca 911."
                         token = os.getenv("WHATSAPP_TOKEN")
                         phone_id = os.getenv("PHONE_NUMBER_ID")
-                        
                         if token and phone_id:
                             url = f"https://graph.facebook.com/v20.0/{phone_id}/messages"
                             headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
