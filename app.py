@@ -1,250 +1,124 @@
-from flask import Flask, request
-import requests
 import os
+import requests
+from flask import Flask, request
 
 app = Flask(__name__)
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "PC_GomezFarias_2025")
-PHONE_CALL = "+52 652 104 8672"
-PHONE_ID_NUMBER = "6521048672"
 
-def call_api(payload):
-    token = os.getenv("WHATSAPP_TOKEN")
-    phone_id = os.getenv("PHONE_NUMBER_ID")
-    url = f"https://graph.facebook.com/v20.0/{phone_id}/messages"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    r = requests.post(url, headers=headers, json=payload)
-    print(f"API: {r.status_code} - {r.text}")
-    return r
+# --- TUS DATOS DE WHATSAPP ---
+VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "PC_GomezFarias")
+WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN") # Tu token largo de Meta
+PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
 
-def enviar_mensaje(to, text):
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "text": {"body": text}
-    }
-    return call_api(payload)
+# --- DATOS DE TELEGRAM PARA VER EN EL CELULAR ---
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8915682882:AAETJDNOamlw6XYjHcLi1sLxeeoYvFvLrfc")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "7480300697")
 
-def enviar_menu_principal(to):
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "interactive",
-        "interactive": {
-            "type": "list",
-            "body": {"text": "Hola soy el bot de proteccion civil de Gomez Farias, ¿cual es tu emergencia?"},
-            "action": {
-                "button": "Ver opciones",
-                "sections": [{
-                    "title": "Selecciona",
-                    "rows": [
-                        {"id": "opt_contacto", "title": "Contactanos", "description": "Llamar a PC 6521048672"},
-                        {"id": "opt_accidente", "title": "Un accidente", "description": "Vehicular o caida"},
-                        {"id": "opt_incendio", "title": "Incendio", "description": "Fuego o quema"},
-                        {"id": "opt_inundacion", "title": "Inundacion", "description": "Agua o arroyo crecido"},
-                        {"id": "opt_clima", "title": "Clima / Alerta", "description": "Pronostico y alertas"},
-                        {"id": "opt_pareja", "title": "Discusion de pareja", "description": "Pleito o violencia"},
-                        {"id": "opt_otros", "title": "Otros", "description": "Otra emergencia"}
-                    ]
-                }]
-            }
+# Guardamos el ultimo numero que escribio para poder responderle desde Telegram
+ultimo_numero = {}
+
+def enviar_a_telegram(texto):
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        data = {"chat_id": TELEGRAM_CHAT_ID, "text": texto}
+        requests.post(url, data=data, timeout=5)
+    except Exception as e:
+        print(f"Error Telegram: {e}")
+
+def enviar_whatsapp(numero, texto):
+    try:
+        url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+        headers = {"Authorization": f"Bearer {WHATSAPP_TOKEN}", "Content-Type": "application/json"}
+        data = {
+            "messaging_product": "whatsapp",
+            "to": numero,
+            "type": "text",
+            "text": {"body": texto}
         }
-    }
-    r = call_api(payload)
-    if r.status_code != 200:
-        enviar_mensaje(to, "Hola soy el bot de proteccion civil de Gomez Farias, ¿cual es tu emergencia?\n1 Contactanos\n2 Accidente\n3 Incendio\n4 Inundacion\n5 Clima\n6 Discusion pareja\n7 Otros")
-
-def enviar_contacto_directo(to):
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "interactive",
-        "interactive": {
-            "type": "cta_url",
-            "body": {"text": f"📞 *CONTACTANOS DIRECTO*\n\nProteccion Civil Gomez Farias\nTel: {PHONE_CALL}\nNumero PC: {PHONE_ID_NUMBER}\n\nPresiona el boton para contactar o comparte tu ubicacion aqui."},
-            "action": {
-                "name": "cta_url",
-                "parameters": {
-                    "display_text": "Contactar 652 104 8672",
-                    "url": f"https://wa.me/52{PHONE_ID_NUMBER}"
-                }
-            }
-        }
-    }
-    r = call_api(payload)
-    if r.status_code != 200:
-        enviar_mensaje(to, f"📞 Contacto directo a Proteccion Civil: {PHONE_CALL}\nMarca directo desde tu telefono al {PHONE_ID_NUMBER}\nO comparte tu ubicacion por aqui.")
-
-def enviar_submenu_accidente(to):
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "interactive",
-        "interactive": {
-            "type": "list",
-            "body": {"text": "🚗 *ACCIDENTE REPORTADO*\n\nPara ayudarte rapido selecciona:"},
-            "action": {
-                "button": "Opciones accidente",
-                "sections": [{
-                    "title": "¿Que necesitas?",
-                    "rows": [
-                        {"id": "acc_ubicacion", "title": "Mandar ubicacion", "description": "Comparte ubicacion por WhatsApp"},
-                        {"id": "acc_lesionado", "title": "Si hay lesionados", "description": "Hay heridos"},
-                        {"id": "acc_grua", "title": "Ocupan grua", "description": "Vehiculo no se mueve"},
-                        {"id": "acc_ambulancia", "title": "Ocupan ambulancia", "description": "Enviar ambulancia"},
-                        {"id": "acc_llamar", "title": "Llamar a PC", "description": f"Marcar al {PHONE_ID_NUMBER}"}
-                    ]
-                }]
-            }
-        }
-    }
-    call_api(payload)
-
-def enviar_submenu_pareja(to):
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "interactive",
-        "interactive": {
-            "type": "list",
-            "body": {"text": "👫 *DISCUSION DE PAREJA / PLEITO*\n\nSelecciona una opcion:"},
-            "action": {
-                "button": "Opciones pleito",
-                "sections": [{
-                    "title": "¿Que necesitas?",
-                    "rows": [
-                        {"id": "pareja_ubicacion", "title": "Mandar ubicacion", "description": "Direccion confidencial"},
-                        {"id": "pareja_lesionado", "title": "Hay lesionados", "description": "Persona herida"},
-                        {"id": "pareja_ambulancia", "title": "Ocupan ambulancia", "description": "Enviar ambulancia"},
-                        {"id": "pareja_llamar", "title": "Llamar a PC", "description": f"Marcar al {PHONE_ID_NUMBER}"}
-                    ]
-                }]
-            }
-        }
-    }
-    call_api(payload)
-
-def enviar_submenu_incendio(to, tipo="Incendio"):
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "interactive",
-        "interactive": {
-            "type": "list",
-            "body": {"text": f"🔥 *{tipo.upper()} REPORTADO*\n\nSelecciona que ocupas:"},
-            "action": {
-                "button": "Opciones",
-                "sections": [{
-                    "title": "¿Que necesitas?",
-                    "rows": [
-                        {"id": "inc_ubicacion", "title": "Mandar ubicacion", "description": "Donde es el fuego/agua"},
-                        {"id": "inc_ambulancia", "title": "Ocupan ambulancia", "description": "Hay heridos"},
-                        {"id": "inc_bomberos", "title": "Ocupan bomberos", "description": "Enviar bomberos"},
-                        {"id": "inc_llamar", "title": "Llamar a PC", "description": f"Marcar al {PHONE_ID_NUMBER}"}
-                    ]
-                }]
-            }
-        }
-    }
-    call_api(payload)
+        requests.post(url, headers=headers, json=data, timeout=10)
+    except Exception as e:
+        print(f"Error WhatsApp: {e}")
 
 @app.route('/')
 def home():
-    return 'Bot de Proteccion Civil Gomez Farias Activo'
+    return "Bot de Proteccion Civil Gomez Farias Activo - WhatsApp + Telegram OK"
 
 @app.route('/webhook', methods=['GET'])
-def verify_webhook():
-    mode = request.args.get('hub.mode')
-    token = request.args.get('hub.verify_token')
-    challenge = request.args.get('hub.challenge')
-    if mode == 'subscribe' and token == VERIFY_TOKEN:
-        return challenge, 200
-    else:
-        return 'Error', 403
+def verify():
+    if request.args.get("hub.verify_token") == VERIFY_TOKEN:
+        return request.args.get("hub.challenge")
+    return "Token invalido", 403
 
 @app.route('/webhook', methods=['POST'])
-def webhook():
+def webhook_whatsapp():
     data = request.get_json()
-    print(data)
+    print(f"Datos recibidos: {data}")
     try:
-        for entry in data.get('entry', []):
-            for change in entry.get('changes', []):
-                value = change.get('value', {})
-                if 'messages' in value:
-                    for msg in value['messages']:
-                        from_num = msg['from']
-                        if msg.get('type') == 'interactive':
-                            list_id = msg.get('interactive', {}).get('list_reply', {}).get('id','')
-                            btn_id = msg.get('interactive', {}).get('button_reply', {}).get('id','')
-                            selected = list_id or btn_id
-                            print(f"Seleccion: {selected}")
+        if data and data.get("object"):
+            entry = data["entry"][0]
+            changes = entry["changes"][0]
+            value = changes.get("value", {})
+            messages = value.get("messages", [])
 
-                            if selected == 'opt_clima':
-                                enviar_mensaje(from_num, "🌧 *CLIMA / ALERTA GOMEZ FARIAS*\n\nMantente atento a lluvias fuertes y vientos. Evita cruzar arroyos. Asegura laminas.\n\nSi ves riesgo, reportalo aqui con ubicacion.")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'opt_contacto':
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'opt_accidente':
-                                enviar_mensaje(from_num, "Has seleccionado: Un accidente. ¿Que necesitas?")
-                                enviar_submenu_accidente(from_num)
-                            elif selected == 'opt_pareja':
-                                enviar_submenu_pareja(from_num)
-                            elif selected == 'opt_incendio':
-                                enviar_submenu_incendio(from_num, "Incendio")
-                            elif selected == 'opt_inundacion':
-                                enviar_submenu_incendio(from_num, "Inundacion")
-                            elif selected == 'opt_otros':
-                                enviar_mensaje(from_num, "Describe tu emergencia y comparte tu ubicacion por WhatsApp. O contacta directo.")
-                                enviar_contacto_directo(from_num)
+            if messages:
+                msg = messages[0]
+                numero = msg["from"]
+                texto = msg.get("text", {}).get("body", "")
 
-                            elif selected == 'acc_ubicacion':
-                                enviar_mensaje(from_num, "📍 Por favor comparte tu ubicacion usando el clip 📎 > Ubicacion > Enviar ubicacion actual.\nEsto nos ayuda a llegar rapido.")
-                            elif selected == 'acc_lesionado':
-                                enviar_mensaje(from_num, "🩹 Hay lesionados: ¿Cuantos? ¿Estan conscientes? No los muevas si hay fractura. Presiona si hay sangrado. Comparte ubicacion aqui.")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'acc_grua':
-                                enviar_mensaje(from_num, "🚜 Ocupan grua: Comparte ubicacion y tipo de vehiculo. Ya estamos avisando a Seguridad Publica.")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'acc_ambulancia':
-                                enviar_mensaje(from_num, "🚑 Ambulancia solicitada. Comparte ubicacion exacta. ¿Cuantos lesionados?")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'acc_llamar':
-                                enviar_contacto_directo(from_num)
+                print(f"Mensaje de {numero}: {texto}")
 
-                            elif selected == 'pareja_ubicacion':
-                                enviar_mensaje(from_num, "📍 Comparte tu ubicacion de forma confidencial por aqui (clip > Ubicacion). Si hay menores en riesgo mencionalo.")
-                            elif selected == 'pareja_lesionado':
-                                enviar_mensaje(from_num, "Hay lesionados por discusion: ¿Necesita atencion? No te expongas. Comparte ubicacion.")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'pareja_ambulancia':
-                                enviar_mensaje(from_num, "🚑 Ambulancia solicitada. Comparte ubicacion.")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'pareja_llamar':
-                                enviar_contacto_directo(from_num)
+                # Guardamos para responder despues
+                ultimo_numero["numero"] = numero
 
-                            elif selected == 'inc_ubicacion':
-                                enviar_mensaje(from_num, "📍 Comparte ubicacion y si puedes una foto o video del lugar (si es seguro). Que tan grande es el incendio o inundacion?")
-                            elif selected == 'inc_ambulancia':
-                                enviar_mensaje(from_num, "🚑 Ambulancia solicitada para incendio/inundacion. Comparte ubicacion.")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'inc_bomberos':
-                                enviar_mensaje(from_num, "🔥🚒 Bomberos notificados. Alejate del area, no intentes apagar si es grande. Comparte ubicacion.")
-                                enviar_contacto_directo(from_num)
-                            elif selected == 'inc_llamar':
-                                enviar_contacto_directo(from_num)
+                # 1. Reenviar a tu Telegram en el celular
+                enviar_a_telegram(f"📩 *Nuevo WhatsApp*\nDe: {numero}\nMensaje: {texto}\n\nPara responder escribe en Telegram:\n/responder {texto}")
 
-                            continue
+                # 2. Aqui va tu logica de bot automatico (puedes dejarla o quitarla)
+                # Por ahora solo responde automatico si quieres
+                # enviar_whatsapp(numero, f"Hola, soy el bot de Proteccion Civil. Recibimos: {texto}")
 
-                        txt = msg.get('text', {}).get('body', '')
-                        lower = txt.lower().strip()
-                        print(f"Texto: {txt}")
-                        saludos = ['hola','buenos dias','buen dia','buenas tardes','buenas noches','buenas','ola','menu','inicio']
-                        if any(s in lower for s in saludos):
-                            enviar_menu_principal(from_num)
-                        else:
-                            enviar_menu_principal(from_num)
     except Exception as e:
-        print(f"Error: {e}")
-    return 'OK', 200
+        print(f"Error en webhook: {e}")
+
+    return "OK", 200
+
+# --- WEBHOOK PARA RESPONDER DESDE TELEGRAM HACIA WHATSAPP ---
+@app.route('/telegram', methods=['POST'])
+def webhook_telegram():
+    data = request.get_json()
+    try:
+        message = data.get("message", {})
+        texto = message.get("text", "")
+        chat_id = str(message.get("chat", {}).get("id", ""))
+
+        # Solo tu puedes responder
+        if chat_id == TELEGRAM_CHAT_ID:
+            if texto.startswith("/responder"):
+                # Formato: /responder numero mensaje  o  /responder mensaje (responde al ultimo)
+                partes = texto.split(" ", 2)
+                if len(partes) == 3:
+                    numero_destino = partes[1]
+                    mensaje_respuesta = partes[2]
+                    enviar_whatsapp(numero_destino, mensaje_respuesta)
+                    enviar_a_telegram(f"✅ Enviado a {numero_destino}: {mensaje_respuesta}")
+                elif len(partes) == 2 and "numero" in ultimo_numero:
+                    mensaje_respuesta = partes[1]
+                    numero_destino = ultimo_numero["numero"]
+                    enviar_whatsapp(numero_destino, mensaje_respuesta)
+                    enviar_a_telegram(f"✅ Enviado a {numero_destino}: {mensaje_respuesta}")
+                else:
+                    enviar_a_telegram("Usa: /responder NUMERO mensaje\nEjemplo: /responder 52614XXXXXXX Estamos en camino")
+            else:
+                # Si no usas comando, lo tomamos como respuesta al ultimo
+                if "numero" in ultimo_numero and texto:
+                    numero_destino = ultimo_numero["numero"]
+                    enviar_whatsapp(numero_destino, texto)
+                    enviar_a_telegram(f"✅ Enviado a {numero_destino}: {texto}")
+
+    except Exception as e:
+        print(f"Error telegram webhook: {e}")
+
+    return "OK", 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
