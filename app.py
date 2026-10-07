@@ -3,7 +3,7 @@ import requests
 import os
 
 app = Flask(__name__)
-VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "PC_GomezFarias_VillaAldama_2025")
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "PC_GomezFarias_2025")
 PHONE_CALL = "+52 652 104 8672"
 PHONE_ID_NUMBER = "6521048672"
 
@@ -17,8 +17,6 @@ def call_api(payload):
     return r
 
 def enviar_mensaje(to, text):
-    token = os.getenv("WHATSAPP_TOKEN")
-    phone_id = os.getenv("PHONE_NUMBER_ID")
     payload = {
         "messaging_product": "whatsapp",
         "to": to,
@@ -39,12 +37,12 @@ def enviar_menu_principal(to):
                 "sections": [{
                     "title": "Selecciona",
                     "rows": [
-                        {"id": "opt_clima", "title": "Clima / Alerta", "description": "Pronostico y alertas"},
-                        {"id": "opt_contacto", "title": "Contactanos", "description": "Llamar a PC Gomez Farias"},
+                        {"id": "opt_contacto", "title": "Contactanos", "description": "Llamar a PC 6521048672"},
                         {"id": "opt_accidente", "title": "Un accidente", "description": "Vehicular o caida"},
-                        {"id": "opt_pareja", "title": "Discusion de pareja", "description": "Pleito o violencia"},
                         {"id": "opt_incendio", "title": "Incendio", "description": "Fuego o quema"},
                         {"id": "opt_inundacion", "title": "Inundacion", "description": "Agua o arroyo crecido"},
+                        {"id": "opt_clima", "title": "Clima / Alerta", "description": "Pronostico y alertas"},
+                        {"id": "opt_pareja", "title": "Discusion de pareja", "description": "Pleito o violencia"},
                         {"id": "opt_otros", "title": "Otros", "description": "Otra emergencia"}
                     ]
                 }]
@@ -53,29 +51,28 @@ def enviar_menu_principal(to):
     }
     r = call_api(payload)
     if r.status_code != 200:
-        enviar_mensaje(to, "Hola soy el bot de proteccion civil de Gomez Farias, ¿cual es tu emergencia?\n1 Clima\n2 Contactanos\n3 Accidente\n4 Discusion pareja\n5 Incendio\n6 Inundacion")
+        enviar_mensaje(to, "Hola soy el bot de proteccion civil de Gomez Farias, ¿cual es tu emergencia?\n1 Contactanos\n2 Accidente\n3 Incendio\n4 Inundacion\n5 Clima\n6 Discusion pareja\n7 Otros")
 
 def enviar_contacto_directo(to):
-    # Mensaje con boton de llamada directa
     payload = {
         "messaging_product": "whatsapp",
         "to": to,
         "type": "interactive",
         "interactive": {
             "type": "cta_url",
-            "body": {"text": f"📞 *CONTACTANOS DIRECTO*\n\nProteccion Civil Gomez Farias\nTel: {PHONE_CALL}\n\nPresiona el boton para llamar o comparte tu ubicacion aqui."},
+            "body": {"text": f"📞 *CONTACTANOS DIRECTO*\n\nProteccion Civil Gomez Farias\nTel: {PHONE_CALL}\nNumero PC: {PHONE_ID_NUMBER}\n\nPresiona el boton para contactar o comparte tu ubicacion aqui."},
             "action": {
                 "name": "cta_url",
                 "parameters": {
-                    "display_text": "Llamar al 652 104 8672",
-                    "url": f"tel:+52{PHONE_ID_NUMBER}"
+                    "display_text": "Contactar 652 104 8672",
+                    "url": f"https://wa.me/52{PHONE_ID_NUMBER}"
                 }
             }
         }
     }
     r = call_api(payload)
     if r.status_code != 200:
-        enviar_mensaje(to, f"📞 Llamada directa a Proteccion Civil: {PHONE_CALL}\nMarca directo desde tu telefono al {PHONE_ID_NUMBER}\nO comparte tu ubicacion por aqui.")
+        enviar_mensaje(to, f"📞 Contacto directo a Proteccion Civil: {PHONE_CALL}\nMarca directo desde tu telefono al {PHONE_ID_NUMBER}\nO comparte tu ubicacion por aqui.")
 
 def enviar_submenu_accidente(to):
     payload = {
@@ -109,7 +106,7 @@ def enviar_submenu_pareja(to):
         "type": "interactive",
         "interactive": {
             "type": "list",
-            "body": {"text": "👫 *DISCUSION DE PAREJA / PLEITO*\n\nSi hay peligro marca 911. Selecciona:"},
+            "body": {"text": "👫 *DISCUSION DE PAREJA / PLEITO*\n\nSelecciona una opcion:"},
             "action": {
                 "button": "Opciones pleito",
                 "sections": [{
@@ -182,7 +179,7 @@ def webhook():
                             print(f"Seleccion: {selected}")
 
                             if selected == 'opt_clima':
-                                enviar_mensaje(from_num, "🌧️ *CLIMA / ALERTA GOMEZ FARIAS*\n\nMantente atento a lluvias fuertes y vientos. Evita cruzar arroyos. Asegura laminas.\n\nSi ves riesgo, reportalo aqui con ubicacion.")
+                                enviar_mensaje(from_num, "🌧 *CLIMA / ALERTA GOMEZ FARIAS*\n\nMantente atento a lluvias fuertes y vientos. Evita cruzar arroyos. Asegura laminas.\n\nSi ves riesgo, reportalo aqui con ubicacion.")
                                 enviar_contacto_directo(from_num)
                             elif selected == 'opt_contacto':
                                 enviar_contacto_directo(from_num)
@@ -196,37 +193,34 @@ def webhook():
                             elif selected == 'opt_inundacion':
                                 enviar_submenu_incendio(from_num, "Inundacion")
                             elif selected == 'opt_otros':
-                                enviar_mensaje(from_num, "Describe tu emergencia y comparte tu ubicacion por WhatsApp. O llama directo.")
+                                enviar_mensaje(from_num, "Describe tu emergencia y comparte tu ubicacion por WhatsApp. O contacta directo.")
                                 enviar_contacto_directo(from_num)
 
-                            # Subopciones accidente
                             elif selected == 'acc_ubicacion':
                                 enviar_mensaje(from_num, "📍 Por favor comparte tu ubicacion usando el clip 📎 > Ubicacion > Enviar ubicacion actual.\nEsto nos ayuda a llegar rapido.")
                             elif selected == 'acc_lesionado':
-                                enviar_mensaje(from_num, "🩹 Hay lesionados: ¿Cuantos? ¿Estan conscientes? No los muevas si hay fractura. Presiona si hay sangrado. Marca 911 y comparte ubicacion aqui.")
+                                enviar_mensaje(from_num, "🩹 Hay lesionados: ¿Cuantos? ¿Estan conscientes? No los muevas si hay fractura. Presiona si hay sangrado. Comparte ubicacion aqui.")
                                 enviar_contacto_directo(from_num)
                             elif selected == 'acc_grua':
                                 enviar_mensaje(from_num, "🚜 Ocupan grua: Comparte ubicacion y tipo de vehiculo. Ya estamos avisando a Seguridad Publica.")
                                 enviar_contacto_directo(from_num)
                             elif selected == 'acc_ambulancia':
-                                enviar_mensaje(from_num, "🚑 Ambulancia en camino. Comparte ubicacion exacta y marca 911. ¿Cuantos lesionados?")
+                                enviar_mensaje(from_num, "🚑 Ambulancia solicitada. Comparte ubicacion exacta. ¿Cuantos lesionados?")
                                 enviar_contacto_directo(from_num)
                             elif selected == 'acc_llamar':
                                 enviar_contacto_directo(from_num)
 
-                            # Subopciones pareja
                             elif selected == 'pareja_ubicacion':
                                 enviar_mensaje(from_num, "📍 Comparte tu ubicacion de forma confidencial por aqui (clip > Ubicacion). Si hay menores en riesgo mencionalo.")
                             elif selected == 'pareja_lesionado':
-                                enviar_mensaje(from_num, "Hay lesionados por discusion: ¿Necesita atencion? No te expongas. Comparte ubicacion y marca 911.")
+                                enviar_mensaje(from_num, "Hay lesionados por discusion: ¿Necesita atencion? No te expongas. Comparte ubicacion.")
                                 enviar_contacto_directo(from_num)
                             elif selected == 'pareja_ambulancia':
-                                enviar_mensaje(from_num, "🚑 Ambulancia solicitada. Comparte ubicacion y marca 911.")
+                                enviar_mensaje(from_num, "🚑 Ambulancia solicitada. Comparte ubicacion.")
                                 enviar_contacto_directo(from_num)
                             elif selected == 'pareja_llamar':
                                 enviar_contacto_directo(from_num)
 
-                            # Subopciones incendio/inundacion
                             elif selected == 'inc_ubicacion':
                                 enviar_mensaje(from_num, "📍 Comparte ubicacion y si puedes una foto o video del lugar (si es seguro). Que tan grande es el incendio o inundacion?")
                             elif selected == 'inc_ambulancia':
@@ -247,7 +241,6 @@ def webhook():
                         if any(s in lower for s in saludos):
                             enviar_menu_principal(from_num)
                         else:
-                            # Cualquier otro texto, regresa al menu
                             enviar_menu_principal(from_num)
     except Exception as e:
         print(f"Error: {e}")
