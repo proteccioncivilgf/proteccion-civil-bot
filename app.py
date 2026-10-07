@@ -2,7 +2,7 @@ from flask import Flask, request
 import requests
 import os
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "PC_GomezFarias_VillaAldama_2025")
 
@@ -44,5 +44,5 @@ def webhook():
         print(f"Error: {e}")
     return 'OK', 200
 
-if _name_ == '_main_':
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
